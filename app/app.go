@@ -36,6 +36,7 @@ type App struct {
 type Options struct {
 	Address         string                 `hcl:"address"`
 	Port            string                 `hcl:"port"`
+	EnalbeRandomPort bool                  `hcl:"enable_random_port"`
 	PermitWrite     bool                   `hcl:"permit_write"`
 	EnableBasicAuth bool                   `hcl:"enable_basic_auth"`
 	Credential      string                 `hcl:"credential"`
@@ -55,6 +56,7 @@ type Options struct {
 var DefaultOptions = Options{
 	Address:         "",
 	Port:            "8080",
+	EnalbeRandomPort: false,
 	PermitWrite:     false,
 	EnableBasicAuth: false,
 	Credential:      "",
@@ -125,7 +127,19 @@ func (app *App) Run() error {
 		path += "/" + generateRandomString(app.options.RandomUrlLength)
 	}
 
-	endpoint := net.JoinHostPort(app.options.Address, app.options.Port)
+	endpoint := ""
+        if app.options.EnalbeRandomPort {
+	        laddr := net.TCPAddr{IP:net.IPv4(127,0,0,1),Port:0}
+	        l,err := net.ListenTCP("tcp4", &laddr)
+	        if err != nil {
+			log.Printf("Get wrong random port.")
+                        return err
+		}
+		addr := l.Addr()
+                endpoint = net.JoinHostPort(app.options.Address, strconv.Itoa(addr.(*net.TCPAddr).Port))
+	}else{
+		endpoint = net.JoinHostPort(app.options.Address, app.options.Port)
+	}
 
 	wsHandler := http.HandlerFunc(app.handleWS)
 	customIndexHandler := http.HandlerFunc(app.handleCustomIndex)
@@ -174,15 +188,29 @@ func (app *App) Run() error {
 			(&url.URL{Scheme: scheme, Host: endpoint, Path: path + "/"}).String(),
 		)
 	} else {
-		for _, address := range listAddresses() {
-			log.Printf(
-				"URL: %s",
-				(&url.URL{
-					Scheme: scheme,
-					Host:   net.JoinHostPort(address, app.options.Port),
-					Path:   path + "/",
-				}).String(),
-			)
+		if app.options.EnalbeRandomPort {
+ 			randomPort := strings.Split(endpoint,":")[1]
+                        for _, address := range listAddresses() {
+                                log.Printf(
+                                        "URL: %s",
+                                        (&url.URL{
+                                                Scheme: scheme,
+                                                Host:   net.JoinHostPort(address, randomPort),
+                                                Path:   path + "/",
+                                        }).String(),
+                                )
+                        }
+		} else {
+			for _, address := range listAddresses() {
+                        	log.Printf(
+                                	"URL: %s",
+                                	(&url.URL{
+                                        	Scheme: scheme,
+                                        	Host:   net.JoinHostPort(address, app.options.Port),
+                                        	Path:   path + "/",
+                                	}).String(),
+                        	)
+                	}
 		}
 	}
 

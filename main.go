@@ -21,6 +21,7 @@ func main() {
 	flags := []flag{
 		flag{"address", "a", "IP address to listen"},
 		flag{"port", "p", "Port number to listen"},
+		flag{"random-port", "rp", "Add random-port"},
 		flag{"permit-write", "w", "Permit clients to write to the TTY (BE CAREFUL)"},
 		flag{"credential", "c", "Credential for Basic Authentication (ex: user:pass, default disabled)"},
 		flag{"random-url", "r", "Add a random string to the URL"},
@@ -42,6 +43,7 @@ func main() {
 		"tls-key":    "TLSKeyFile",
 		"random-url": "EnableRandomUrl",
 		"reconnect":  "EnableReconnect",
+		"random-port": "EnalbeRandomPort",
 	}
 
 	cliFlags, err := generateFlags(flags, mappingHint)
